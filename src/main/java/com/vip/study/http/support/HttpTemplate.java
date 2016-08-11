@@ -36,6 +36,9 @@ import java.util.Map.Entry;
  */
 public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
+    public HttpTemplate() {
+    }
+
     private HttpTemplate(Builder builder) {
         this.protocol = builder.protocol;
         this.contentType = builder.contentType;
