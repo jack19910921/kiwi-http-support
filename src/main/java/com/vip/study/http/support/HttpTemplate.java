@@ -22,6 +22,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.springframework.util.Assert;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
@@ -54,6 +55,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
     public <T> T doPost(String url, Object params, HttpCallback<T> action)
             throws HttpException {
+        Assert.notNull(params, "params must be not null");
+
         return this.execute(url, params, RequestMethod.POST, action);
     }
 
@@ -65,6 +68,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
     public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
             throws HttpException {
+        Assert.notNull(params, "params must be not null");
 
         Map<String, String> map = ReflectUtil.convertJavaBean2Map(params);
 
@@ -92,13 +96,24 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                         HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorMessage());
             }
 
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                throw new HttpException(HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorCode(),
-                        HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorMessage());
-            }
-
             HttpEntity entity = response.getEntity();
             String result = EntityUtils.toString(entity, charset);
+
+            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("ErrorMessage:" + response.toString());
+                }
+
+                switch (response.getStatusLine().getStatusCode()) {
+                    case HttpStatus.SC_METHOD_NOT_ALLOWED:
+                        throw new HttpException(HttpErrorEnum.SC_METHOD_NOT_ALLOWED.getErrorCode(),
+                                HttpErrorEnum.SC_METHOD_NOT_ALLOWED.getErrorMessage());
+                    default:
+                        throw new HttpException(HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorCode(),
+                                HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorMessage());
+                }
+
+            }
 
             //5.invoke callback
             return action.doParseResult(result);
@@ -122,6 +137,10 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
     private Map<String, String> sign(Map<String, String> params, final Order order, String charset) {
         Map<String, String> map = Maps.newLinkedHashMap();
+
+        if (params == null) {
+            return params;
+        }
 
         if (order == Order.IMMUTABLE) {
             map.putAll(params);

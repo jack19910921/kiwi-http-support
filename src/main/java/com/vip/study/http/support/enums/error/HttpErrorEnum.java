@@ -9,7 +9,8 @@ public enum HttpErrorEnum implements AbstractErrorEnum {
     RESPONSE_IS_EMPTY("50002", "响应内容为空"),
     RESPONSE_STATUS_CODE_INVALID("50003", "响应码不等于200,请求失败"),
     CLOSE_CHANNEL_ERROR("50004", "关闭链路出现异常"),
-    SYSTEM_INTERNAL_ERROR("50005", "系统内部错误");
+    SYSTEM_INTERNAL_ERROR("50005", "系统内部错误"),
+    SC_METHOD_NOT_ALLOWED("50006", "方法不被允许");
 
     private String errorCode;
     private String errorMessage;
