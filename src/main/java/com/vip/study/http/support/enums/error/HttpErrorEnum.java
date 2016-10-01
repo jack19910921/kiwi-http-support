@@ -3,13 +3,13 @@ package com.vip.study.http.support.enums.error;
 /**
  * Created by jack on 16/8/8.
  */
-public enum HttpErrorEnum implements AbstractErrorEnum {
+public enum HttpErrorEnum implements ErrorEnum {
     REFLECT_ERROR("50000", "JavaBean2Map时,反射异常"),
-    UNSUPPORTED_REQUEST_METHOD("50001", "不支持的RequestMethod"),
+    UNSUPPORTED_REQUEST_METHOD("50001", "不支持的方法"),
     RESPONSE_IS_EMPTY("50002", "响应内容为空"),
     RESPONSE_STATUS_CODE_INVALID("50003", "响应码不等于200,请求失败"),
     CLOSE_CHANNEL_ERROR("50004", "关闭链路出现异常"),
-    SYSTEM_INTERNAL_ERROR("50005", "系统内部错误"),
+    SYSTEM_INTERNAL_ERROR("50005", "Http模块系统内部错误"),
     SC_METHOD_NOT_ALLOWED("50006", "方法不被允许");
 
     private String errorCode;

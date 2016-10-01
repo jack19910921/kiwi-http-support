@@ -3,14 +3,14 @@ package com.vip.study.http.support.enums;
 import org.springframework.util.Assert;
 
 /**
- * Created by jack on 16/8/1.
+ * Created by jack on 16/8/9.
  */
-public enum Protocol {
-    HTTP("http"), HTTPS("https");
+public enum ParameterOrder {
+    ASC("asc"), DESC("desc"), IMMUTABLE("immutable");
 
     private String label;
 
-    Protocol(String label) {
+    ParameterOrder(String label) {
         this.label = label;
     }
 
@@ -18,14 +18,14 @@ public enum Protocol {
         return label;
     }
 
-    public static Protocol determineProtocolByLabel(String label) {
+    public static ParameterOrder determineParameterOrderByLabel(String label) {
         Assert.notNull(label, "label is required");
 
-        for (Protocol p : Protocol.values()) {
+        for (ParameterOrder p : ParameterOrder.values()) {
             if (p.getLabel().equalsIgnoreCase(label))
                 return p;
         }
 
-        return HTTP;
+        return IMMUTABLE;
     }
 }

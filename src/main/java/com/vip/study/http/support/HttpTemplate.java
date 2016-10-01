@@ -2,7 +2,8 @@ package com.vip.study.http.support;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.vip.study.http.support.enums.Order;
+import com.vip.study.http.support.cons.HttpConstant;
+import com.vip.study.http.support.enums.ParameterOrder;
 import com.vip.study.http.support.enums.Protocol;
 import com.vip.study.http.support.enums.RequestMethod;
 import com.vip.study.http.support.enums.error.HttpErrorEnum;
@@ -45,34 +46,34 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         this.contentType = builder.contentType;
         this.charset = builder.charset;
         this.requestMethod = builder.requestMethod;
-        this.order = builder.order;
+        this.parameterOrder = builder.parameterOrder;
     }
 
     public <T> T doPost(String url, Map<String, String> params, HttpCallback<T> action)
             throws HttpException {
-        return this.execute(url, params, RequestMethod.POST, action);
+        return execute(url, params, RequestMethod.POST, action);
     }
 
     public <T> T doPost(String url, Object params, HttpCallback<T> action)
             throws HttpException {
-        Assert.notNull(params, "params must be not null");
+        Assert.notNull(params, "params must not be null");
 
-        return this.execute(url, params, RequestMethod.POST, action);
+        return execute(url, params, RequestMethod.POST, action);
     }
 
     public <T> T doGet(String url, HttpCallback<T> action)
             throws HttpException {
-        return this.execute(url, null, RequestMethod.GET, action);
+        return execute(url, null, RequestMethod.GET, action);
     }
 
 
     public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
             throws HttpException {
-        Assert.notNull(params, "params must be not null");
+        Assert.notNull(params, "params must not be null");
 
         Map<String, String> map = ReflectUtil.convertJavaBean2Map(params);
 
-        return this.execute(url, map, method, action);
+        return execute(url, map, method, action);
     }
 
     public <T> T execute(String url, Map<String, String> params, RequestMethod method, HttpCallback<T> action)
@@ -82,13 +83,13 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
         try {
             //1.sort params and build sign
-            Map<String, String> sortedMapWithSign = this.sign(params, order, charset);
+            Map<String, String> sortedMapWithSign = sign(params, parameterOrder, charset);
 
             //2.create http or https client
-            httpclient = this.newHttpClient(protocol);
+            httpclient = newHttpClient(protocol);
 
             //3.send request
-            response = this.doExecute(httpclient, url, sortedMapWithSign, method);
+            response = doExecute(httpclient, url, sortedMapWithSign, method);
 
             //4.consume response
             if (response == null || response.getEntity() == null) {
@@ -135,21 +136,21 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         }
     }
 
-    private Map<String, String> sign(Map<String, String> params, final Order order, String charset) {
+    private Map<String, String> sign(Map<String, String> params, final ParameterOrder parameterOrder, String charset) {
         Map<String, String> map = Maps.newLinkedHashMap();
 
         if (params == null) {
             return params;
         }
 
-        if (order == Order.IMMUTABLE) {
+        if (parameterOrder == ParameterOrder.IMMUTABLE) {
             map.putAll(params);
         } else {
             Map<String, String> treeMap = Maps.newTreeMap(new Comparator<String>() {
 
                 @Override
                 public int compare(String o1, String o2) {
-                    if (order == Order.ASC) {
+                    if (parameterOrder == ParameterOrder.ASC) {
                         return o1.compareTo(o2);
                     } else {
                         return o2.compareTo(o1);
@@ -159,10 +160,26 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             map.putAll(treeMap);
         }
 
-        String sign = SignUtil.sign(map, charset);
-        map.put("sign", sign);// TODO: 16/8/9  
+        doSign(map, charset);
 
         return map;
+    }
+
+    private void doSign(Map<String, String> map, String charset) {
+        try {
+            if (this.signSupport != null) {
+                signSupport.doSign(map, charset);
+            } else {
+                String sign = SignUtil.sign(map, charset);
+                map.put(HttpConstant.SIGN_KEY, sign);
+            }
+
+        } catch (Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("do sign has some problem.", e);
+            }
+            logger.error("ErrorMessage:" + e.getMessage());
+        }
     }
 
     private CloseableHttpResponse doExecute(CloseableHttpClient httpclient, String url, Map<String, String> params, RequestMethod method)
@@ -205,15 +222,15 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         if (protocol == Protocol.HTTP) {
             return HttpClients.createDefault();
         } else {
-            return this.newHttpsClient();
+            return newHttpsClient();
         }
     }
 
     private CloseableHttpClient newHttpsClient() throws Exception {
         X509TrustManager x509mgr = HttpsSupport.newX509TrustManager();
         RequestConfig requestConfig = RequestConfig.custom()
-                .setSocketTimeout(connectionTime)
-                .setConnectTimeout(connectionTime)
+                .setSocketTimeout(HttpConstant.DEFAULT_CONNECT_TIME)
+                .setConnectTimeout(HttpConstant.DEFAULT_CONNECT_TIME)
                 .build();
 
         SSLContext sslContext = HttpsSupport.newSSLContext(x509mgr);
@@ -228,10 +245,10 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
     public static final class Builder {
 
         Protocol protocol = Protocol.HTTP;
-        String contentType = "application/json";
-        String charset = "UTF-8";
+        String contentType = HttpConstant.DEFAULT_CONTENT_TYPE;
+        String charset = HttpConstant.DEFAULT_CHARSET;
         RequestMethod requestMethod = RequestMethod.POST;
-        Order order = Order.ASC;
+        ParameterOrder parameterOrder = ParameterOrder.IMMUTABLE;
 
         public Builder protocol(Protocol protocol) {
             this.protocol = protocol;
@@ -253,8 +270,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             return this;
         }
 
-        public Builder order(Order order) {
-            this.order = order;
+        public Builder parameterOrder(ParameterOrder parameterOrder) {
+            this.parameterOrder = parameterOrder;
             return this;
         }
 

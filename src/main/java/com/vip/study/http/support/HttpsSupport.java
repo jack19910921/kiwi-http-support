@@ -1,5 +1,7 @@
 package com.vip.study.http.support;
 
+import com.vip.study.http.support.cons.HttpConstant;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -11,8 +13,6 @@ import java.security.cert.X509Certificate;
  * Created by jack on 16/8/7.
  */
 public class HttpsSupport {
-
-    private static final String TLS = "TLS";
 
     public static X509TrustManager newX509TrustManager() throws Exception {
         return new X509TrustManager() {
@@ -35,7 +35,7 @@ public class HttpsSupport {
             throws NoSuchAlgorithmException, KeyManagementException {
         SSLContext sslContext;
         try {
-            sslContext = SSLContext.getInstance(TLS);
+            sslContext = SSLContext.getInstance(HttpConstant.TLS);
         } catch (NoSuchAlgorithmException e1) {
             throw e1;
         }
