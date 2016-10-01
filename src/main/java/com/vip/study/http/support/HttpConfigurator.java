@@ -4,8 +4,8 @@ import com.vip.study.http.support.cons.HttpConstant;
 import com.vip.study.http.support.enums.ParameterOrder;
 import com.vip.study.http.support.enums.Protocol;
 import com.vip.study.http.support.enums.RequestMethod;
-import com.vip.study.http.support.spi.ConfigManagerSupport;
-import com.vip.study.http.support.spi.SignSupport;
+import com.vip.study.http.support.spi.ConfigProvider;
+import com.vip.study.http.support.spi.SignProvider;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
@@ -13,8 +13,12 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 
 import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.ServiceLoader;
 
 /**
  * Created by jack on 16/7/31.
@@ -31,7 +35,7 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
 
     protected String configClass = HttpConstant.DEFAULT_CONFIG_CLASS;
     protected String configMethodName = HttpConstant.DEFAULT_CONFIG_METHOD_NAME;
-    protected SignSupport signSupport;
+    protected SignProvider signProvider;
 
     protected ApplicationContext applicationContext;
 
@@ -58,20 +62,44 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
         Assert.hasText(this.configMethodName, "configMethodName is required");
 
         try {
-            //load config from data dict table or zk or classpath
+            ConfigProvider configProvider = null;
+
+            /**
+             * look up ConfigProvider spi implementation from classpath.
+             * search all (META-INF/services/com.vip.study.http.support.spi.ConfigProvider) file in classpath.
+             */
+            ServiceLoader<ConfigProvider> serviceLoader = ServiceLoader.load(ConfigProvider.class);
+            Iterator<ConfigProvider> iterator = serviceLoader.iterator();
+            while (iterator.hasNext()) {
+                configProvider = iterator.next();
+                break;
+            }
+            if (configProvider != null) {
+                initConfigBySpiImpl(configProvider);
+            }
+
+            /**
+             * using thread context classLoader.
+             * look up ConfigProvider spi implementation from ioc container.
+             */
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            Class<?> clazz = loader.loadClass(ConfigManagerSupport.class.getName());
+            Class<?> clazz = loader.loadClass(ConfigProvider.class.getName());
 
-            ConfigManagerSupport configManagerSupport = (ConfigManagerSupport) applicationContext.getBean(clazz);
-            if (configManagerSupport != null) {
-                //has ConfigManagerSupport spi implement
-                this.protocol = Protocol.determineProtocolByLabel(configManagerSupport.getString(HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL));
-                this.requestMethod = RequestMethod.determineRequestMethodByLabel(configManagerSupport.getString(HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD));
-                this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(configManagerSupport.getString(HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER));
-                this.contentType = configManagerSupport.getString(HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
-                this.charset = configManagerSupport.getString(HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
+            Map<String, ?> configProviderBeanMap = applicationContext.getBeansOfType(clazz);
+            if (!CollectionUtils.isEmpty(configProviderBeanMap)) {
+                for (Object configProviderBean : configProviderBeanMap.values()) {
+                    configProvider = (ConfigProvider) configProviderBean;
+                    break;
+                }
+            }
 
+            if (configProvider != null) {
+                initConfigBySpiImpl(configProvider);
             } else {
+                /**
+                 * using specified class with method in order to init config.
+                 * (need setter injection,if not config,using "com.vip.xfd.account.components.ConfigManager#getString(String,String)")
+                 */
                 clazz = loader.loadClass(this.configClass);
                 Object configManager = applicationContext.getBean(clazz);
 
@@ -94,9 +122,30 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
                 this.charset = charset;
             }
 
-            //find SignSupport spi implement
-            Class<?> signClazz = loader.loadClass(SignSupport.class.getName());
-            this.signSupport = (SignSupport) applicationContext.getBean(signClazz);
+            /**
+             * look up SignProvider spi implementation from classpath.
+             */
+            ServiceLoader<SignProvider> serviceLoader1 = ServiceLoader.load(SignProvider.class);
+            Iterator<SignProvider> iterator1 = serviceLoader1.iterator();
+            while (iterator1.hasNext()) {
+                this.signProvider = iterator1.next();
+                break;
+            }
+
+            if (this.signProvider == null) {
+                /**
+                 * look up SignProvider spi implementation from ioc container.
+                 */
+                Class<?> signClazz = loader.loadClass(SignProvider.class.getName());
+
+                Map<String, ?> signProviderBeanMap = applicationContext.getBeansOfType(signClazz);
+                if (!CollectionUtils.isEmpty(signProviderBeanMap)) {
+                    for (Object signProviderBean : signProviderBeanMap.values()) {
+                        this.signProvider = (SignProvider) signProviderBean;
+                        break;
+                    }
+                }
+            }
 
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {
@@ -105,6 +154,14 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
             initDefaultConfig();
         }
 
+    }
+
+    private void initConfigBySpiImpl(ConfigProvider configProvider) {
+        this.protocol = Protocol.determineProtocolByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL));
+        this.requestMethod = RequestMethod.determineRequestMethodByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD));
+        this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER));
+        this.contentType = configProvider.getString(HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
+        this.charset = configProvider.getString(HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
     }
 
     private void initDefaultConfig() {

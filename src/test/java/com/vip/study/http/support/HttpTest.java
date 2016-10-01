@@ -20,7 +20,7 @@ public class HttpTest {
     public void testDoGet() {
         try {
             HttpTemplate httpTemplate = new HttpTemplate.Builder()
-                    .charSet("UTF-8")
+                    .charset("UTF-8")
                     .protocol(Protocol.HTTP)
                     .build();
 
@@ -46,7 +46,7 @@ public class HttpTest {
         try {
 
             HttpTemplate httpTemplate = new HttpTemplate.Builder()
-                    .charSet("UTF-8")
+                    .charset("UTF-8")
                     .protocol(Protocol.HTTP)
                     .build();
             String url = "http://127.0.0.1:8080/job/list";

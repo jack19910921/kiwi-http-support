@@ -4,7 +4,6 @@ package com.vip.study.http.support.enums.error;
  * Created by jack on 16/8/8.
  */
 public enum HttpErrorEnum implements ErrorEnum {
-    REFLECT_ERROR("50000", "JavaBean2Map时,反射异常"),
     UNSUPPORTED_REQUEST_METHOD("50001", "不支持的方法"),
     RESPONSE_IS_EMPTY("50002", "响应内容为空"),
     RESPONSE_STATUS_CODE_INVALID("50003", "响应码不等于200,请求失败"),

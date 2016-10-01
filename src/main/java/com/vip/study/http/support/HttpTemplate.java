@@ -120,9 +120,14 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             return action.doParseResult(result);
 
         } catch (Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("http invoke has some problem.", e);
+            }
+
             if (e instanceof HttpException) {
                 throw (HttpException) e;
             }
+
             throw new HttpException(HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorCode(),
                     HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorMessage());
         } finally {
@@ -130,6 +135,10 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                 if (response != null) response.close();
                 if (httpclient != null) httpclient.close();
             } catch (IOException e) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("release http connection has some problem.", e);
+                }
+
                 throw new HttpException(HttpErrorEnum.CLOSE_CHANNEL_ERROR.getErrorCode(),
                         HttpErrorEnum.CLOSE_CHANNEL_ERROR.getErrorMessage());
             }
@@ -167,8 +176,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
     private void doSign(Map<String, String> map, String charset) {
         try {
-            if (this.signSupport != null) {
-                signSupport.doSign(map, charset);
+            if (this.signProvider != null) {
+                signProvider.doSign(map, charset);
             } else {
                 String sign = SignUtil.sign(map, charset);
                 map.put(HttpConstant.SIGN_KEY, sign);
@@ -260,8 +269,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             return this;
         }
 
-        public Builder charSet(String charSet) {
-            this.charset = charSet;
+        public Builder charset(String charset) {
+            this.charset = charset;
             return this;
         }
 

@@ -24,7 +24,7 @@ public class HttpConstant {
     public static final String DEFAULT_CONTENT_TYPE = "application/json";
     public static final String DEFAULT_CHARSET = "UTF-8";
 
-    public static final String DEFAULT_CONFIG_CLASS = "com.vip.xfd.account.components.ConfigManagerSupport";
+    public static final String DEFAULT_CONFIG_CLASS = "com.vip.xfd.account.components.ConfigManager";
     public static final String DEFAULT_CONFIG_METHOD_NAME = "getString";
 
     public static final int DEFAULT_CONNECT_TIME = -1;
