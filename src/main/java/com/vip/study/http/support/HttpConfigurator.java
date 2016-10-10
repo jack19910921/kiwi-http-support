@@ -6,8 +6,10 @@ import com.vip.study.http.support.enums.Protocol;
 import com.vip.study.http.support.enums.RequestMethod;
 import com.vip.study.http.support.spi.ConfigProvider;
 import com.vip.study.http.support.spi.SignProvider;
+import com.vip.study.util.log.SLoggerFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -25,7 +27,7 @@ import java.util.ServiceLoader;
  */
 public abstract class HttpConfigurator implements InitializingBean, ApplicationContextAware {
 
-    protected final Log logger = LogFactory.getLog(this.getClass());
+    protected final Logger logger = SLoggerFactory.getLogger(this.getClass());
 
     protected Protocol protocol;
     protected String contentType;
@@ -39,11 +41,11 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
 
     protected ApplicationContext applicationContext;
 
-    protected void setConfigClass(String configClass) {
+    public void setConfigClass(String configClass) {
         this.configClass = configClass;
     }
 
-    protected void setConfigMethodName(String configMethodName) {
+    public void setConfigMethodName(String configMethodName) {
         this.configMethodName = configMethodName;
     }
 
