@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<http id="httpTemplate" class="com.vip.study.http.support.HttpTemplate">
+    <property name="configKey" value="xxx"/>
+    <property name="configValue" value="yyy"/>
+</http>
