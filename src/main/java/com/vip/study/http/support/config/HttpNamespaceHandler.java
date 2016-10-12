@@ -9,6 +9,6 @@ public class HttpNamespaceHandler extends NamespaceHandlerSupport{
 
     @Override
     public void init() {
-        registerBeanDefinitionParser("http", new HttpParser());
+        registerBeanDefinitionParser("http-support", new HttpParser());
     }
 }

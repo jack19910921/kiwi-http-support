@@ -1,2 +1,2 @@
-http\://study.vip.vip.com/schema/http/study-http-1.0.xsd=com/vip/study/http/support/config/study-http-1.0.xsd
-http\://study.vip.vip.com/schema/http/study-http.xsd=com/vip/study/http/support/config/study-http-1.0.xsd
+http\://study.vip.vip.com/schema/http/study-http-1.0.xsd=study-http-1.0.xsd
+http\://study.vip.vip.com/schema/http/study-http.xsd=study-http-1.0.xsd
