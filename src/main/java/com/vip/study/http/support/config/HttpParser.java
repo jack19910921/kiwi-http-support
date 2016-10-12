@@ -5,9 +5,12 @@ import com.vip.study.util.log.SLoggerFactory;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinitionHolder;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.beans.factory.support.RootBeanDefinition;
-import org.springframework.beans.factory.xml.AbstractBeanDefinitionParser;
+import org.springframework.beans.factory.xml.BeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
@@ -21,9 +24,30 @@ import java.beans.PropertyDescriptor;
 /**
  * Created by jack08.liu on 2016/10/10.
  */
-public class HttpParser extends AbstractBeanDefinitionParser {
-
+public class HttpParser implements BeanDefinitionParser {
     public final Logger logger = SLoggerFactory.getLogger(HttpParser.class);
+
+    public static final String DEFAULT_ID = "httpTemplate";
+
+    /**
+     * Constant for the id attribute
+     */
+    public static final String ID_ATTRIBUTE = "id";
+
+    /**
+     * Constant for the class attribute
+     */
+    public static final String CLASS_ATTRIBUTE = "class";
+
+    /**
+     * Constant for the configClass attribute
+     */
+    public static final String CONFIG_CLASS_ATTRIBUTE = "configClass";
+
+    /**
+     * Constant for the configMethodName attribute
+     */
+    public static final String CONFIG_METHOD_NAME_ATTRIBUTE = "configMethodName";
 
     /**
      * Constant for the property element
@@ -40,9 +64,14 @@ public class HttpParser extends AbstractBeanDefinitionParser {
      */
     public static final String PROPERTY_VALUE = "value";
 
-    @Override
+
     protected AbstractBeanDefinition parseInternal(Element root, ParserContext parserContext) {
         String id = root.getAttribute(this.ID_ATTRIBUTE);
+        if (StringUtils.isBlank(id)) {
+            id = "httpTemplate";
+        }
+
+        String className = root.getAttribute("class");
         if (StringUtils.isBlank(id)) {
             id = "httpTemplate";
         }
@@ -97,4 +126,49 @@ public class HttpParser extends AbstractBeanDefinitionParser {
         }
     }
 
+    @Override
+    public BeanDefinition parse(Element element, ParserContext context) {
+        RootBeanDefinition rootBeanDefinition = new RootBeanDefinition();
+
+        //id
+        String id = element.getAttribute(this.ID_ATTRIBUTE);
+        if (StringUtils.isBlank(id)) {
+            id = this.DEFAULT_ID;
+        }
+        BeanDefinitionHolder idHolder = new BeanDefinitionHolder(rootBeanDefinition, id);
+        BeanDefinitionReaderUtils.registerBeanDefinition(idHolder,
+                context.getRegistry());
+
+        //class
+        String className = element.getAttribute(this.CLASS_ATTRIBUTE);
+        if (StringUtils.isBlank(className)) {
+            className = HttpTemplate.class.getName();
+        }
+        BeanDefinitionHolder classNameHolder = new BeanDefinitionHolder(rootBeanDefinition, className);
+        BeanDefinitionReaderUtils.registerBeanDefinition(classNameHolder,
+                context.getRegistry());
+        rootBeanDefinition.setBeanClassName(className);
+
+        //configClass
+        String configClass = element.getAttribute(this.CONFIG_CLASS_ATTRIBUTE);
+        if (StringUtils.isNotBlank(configClass)) {
+            BeanDefinitionHolder configClassHolder = new BeanDefinitionHolder(rootBeanDefinition,
+                    configClass);
+            BeanDefinitionReaderUtils.registerBeanDefinition(configClassHolder,
+                    context.getRegistry());
+            rootBeanDefinition.getPropertyValues().addPropertyValue(this.CONFIG_CLASS_ATTRIBUTE, configClass);
+        }
+
+        //configMethodName
+        String configMethodName = element.getAttribute(this.CONFIG_METHOD_NAME_ATTRIBUTE);
+        if (StringUtils.isNotBlank(configMethodName)) {
+            BeanDefinitionHolder configMethodNameHolder = new BeanDefinitionHolder(rootBeanDefinition,
+                    configMethodName);
+            BeanDefinitionReaderUtils.registerBeanDefinition(configMethodNameHolder,
+                    context.getRegistry());
+            rootBeanDefinition.getPropertyValues().addPropertyValue(this.CONFIG_METHOD_NAME_ATTRIBUTE, configMethodName);
+        }
+
+        return rootBeanDefinition;
+    }
 }
