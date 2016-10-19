@@ -2,12 +2,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.vip.study</groupId>
-    <artifactId>study-http-support</artifactId>
+    <groupId>org.kiwi</groupId>
+    <artifactId>kiwi-http-support</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>study-http-support</name>
+    <name>kiwi-http-support</name>
 
     <properties>
         <java.version>1.7</java.version>
@@ -21,7 +21,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>com.vip.study</groupId>
             <artifactId>study-util</artifactId>
             <version>${project.version}</version>
         </dependency>
