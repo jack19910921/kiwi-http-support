@@ -2,6 +2,7 @@ package org.kiwi.http.support;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.http.conn.HttpHostConnectException;
 import org.kiwi.http.support.cons.HttpConstant;
 import org.kiwi.http.support.enums.ParameterOrder;
 import org.kiwi.http.support.enums.Protocol;
@@ -122,6 +123,11 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {
                 logger.debug("http invoke has some problem.", e);
+            }
+
+            if (e instanceof HttpHostConnectException) {
+                throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
+                        HttpErrorEnum.CONNECTION_REFUSED.getErrorMessage());
             }
 
             if (e instanceof HttpException) {
