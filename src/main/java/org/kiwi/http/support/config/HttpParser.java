@@ -1,8 +1,8 @@
 package org.kiwi.http.support.config;
 
-import org.kiwi.http.support.HttpTemplate;
-import com.vip.study.util.log.SLoggerFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.kiwi.http.support.HttpTemplate;
+import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinitionHolder;
@@ -16,7 +16,7 @@ import org.w3c.dom.Element;
  * Created by jack08.liu on 2016/10/10.
  */
 public class HttpParser implements BeanDefinitionParser {
-    private final Logger logger = SLoggerFactory.getLogger(HttpParser.class);
+    private final Logger logger = KLoggerFactory.getLogger(HttpParser.class);
 
     public static final String DEFAULT_ID = "httpTemplate";
 

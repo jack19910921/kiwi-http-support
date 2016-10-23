@@ -21,8 +21,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.vip.study</groupId>
-            <artifactId>study-util</artifactId>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>kiwi-util</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

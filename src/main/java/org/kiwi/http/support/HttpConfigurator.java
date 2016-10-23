@@ -6,7 +6,7 @@ import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
 import org.kiwi.http.support.spi.SignProvider;
-import com.vip.study.util.log.SLoggerFactory;
+import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
@@ -25,7 +25,7 @@ import java.util.ServiceLoader;
  */
 public abstract class HttpConfigurator implements InitializingBean, ApplicationContextAware {
 
-    protected final Logger logger = SLoggerFactory.getLogger(this.getClass());
+    protected final Logger logger = KLoggerFactory.getLogger(this.getClass());
 
     protected Protocol protocol;
     protected String contentType;
