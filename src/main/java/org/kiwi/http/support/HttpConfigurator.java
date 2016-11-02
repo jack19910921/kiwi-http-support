@@ -96,30 +96,37 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
             if (configProvider != null) {
                 initConfigBySpiImpl(configProvider);
             } else {
-                /**
-                 * using specified class with method in order to init config.
-                 * (need setter injection,if not config,using "com.vip.xfd.account.components.ConfigManager#getString(String,String)")
-                 */
-                clazz = loader.loadClass(this.configClass);
-                Object configManager = applicationContext.getBean(clazz);
+                try {
+                    /**
+                     * using specified class with method in order to init config.
+                     * (need setter injection,if not config,using "com.vip.xfd.account.components.ConfigManager#getString(String,String)")
+                     */
+                    clazz = loader.loadClass(this.configClass);
+                    Object configManager = applicationContext.getBean(clazz);
 
-                Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
-                method.setAccessible(true);
+                    Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
+                    method.setAccessible(true);
 
-                String protocolStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
-                this.protocol = Protocol.determineProtocolByLabel(protocolStr);
+                    String protocolStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
+                    this.protocol = Protocol.determineProtocolByLabel(protocolStr);
 
-                String requestMethodStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
-                this.requestMethod = RequestMethod.determineRequestMethodByLabel(requestMethodStr);
+                    String requestMethodStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
+                    this.requestMethod = RequestMethod.determineRequestMethodByLabel(requestMethodStr);
 
-                String parameterOrderStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER);
-                this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(parameterOrderStr);
+                    String parameterOrderStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER);
+                    this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(parameterOrderStr);
 
-                String contentType = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
-                this.contentType = contentType;
+                    String contentType = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
+                    this.contentType = contentType;
 
-                String charset = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
-                this.charset = charset;
+                    String charset = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
+                    this.charset = charset;
+                } catch (ClassNotFoundException e) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(e.getMessage());
+                    }
+                    initDefaultConfig();
+                }
             }
 
             /**
