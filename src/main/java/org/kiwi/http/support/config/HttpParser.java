@@ -5,8 +5,6 @@ import org.kiwi.http.support.HttpTemplate;
 import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.config.BeanDefinitionHolder;
-import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.beans.factory.xml.BeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
@@ -40,21 +38,19 @@ public class HttpParser implements BeanDefinitionParser {
      */
     public static final String CONFIG_METHOD_NAME_ATTRIBUTE = "configMethodName";
 
+
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
         RootBeanDefinition rootBeanDefinition = new RootBeanDefinition();
 
         //id
-        String id = element.getAttribute(this.ID_ATTRIBUTE);
+        String id = element.getAttribute(ID_ATTRIBUTE);
         if (StringUtils.isBlank(id)) {
-            id = this.DEFAULT_ID;
+            id = DEFAULT_ID;
         }
-        BeanDefinitionHolder idHolder = new BeanDefinitionHolder(rootBeanDefinition, id);
-        BeanDefinitionReaderUtils.registerBeanDefinition(idHolder,
-                parserContext.getRegistry());
 
-        //class
-        String className = element.getAttribute(this.CLASS_ATTRIBUTE);
+        //className
+        String className = element.getAttribute(CLASS_ATTRIBUTE);
         if (StringUtils.isBlank(className)) {
             className = HttpTemplate.class.getName();
         } else {
@@ -70,30 +66,21 @@ public class HttpParser implements BeanDefinitionParser {
                 className = HttpTemplate.class.getName();
             }
         }
-        BeanDefinitionHolder classNameHolder = new BeanDefinitionHolder(rootBeanDefinition, className);
-        BeanDefinitionReaderUtils.registerBeanDefinition(classNameHolder,
-                parserContext.getRegistry());
         rootBeanDefinition.setBeanClassName(className);
 
         //configClass
-        String configClass = element.getAttribute(this.CONFIG_CLASS_ATTRIBUTE);
+        String configClass = element.getAttribute(CONFIG_CLASS_ATTRIBUTE);
         if (StringUtils.isNotBlank(configClass)) {
-            BeanDefinitionHolder configClassHolder = new BeanDefinitionHolder(rootBeanDefinition,
-                    configClass);
-            BeanDefinitionReaderUtils.registerBeanDefinition(configClassHolder,
-                    parserContext.getRegistry());
-            rootBeanDefinition.getPropertyValues().addPropertyValue(this.CONFIG_CLASS_ATTRIBUTE, configClass);
+            rootBeanDefinition.getPropertyValues().add(CONFIG_CLASS_ATTRIBUTE, configClass);
         }
 
         //configMethodName
-        String configMethodName = element.getAttribute(this.CONFIG_METHOD_NAME_ATTRIBUTE);
+        String configMethodName = element.getAttribute(CONFIG_METHOD_NAME_ATTRIBUTE);
         if (StringUtils.isNotBlank(configMethodName)) {
-            BeanDefinitionHolder configMethodNameHolder = new BeanDefinitionHolder(rootBeanDefinition,
-                    configMethodName);
-            BeanDefinitionReaderUtils.registerBeanDefinition(configMethodNameHolder,
-                    parserContext.getRegistry());
-            rootBeanDefinition.getPropertyValues().addPropertyValue(this.CONFIG_METHOD_NAME_ATTRIBUTE, configMethodName);
+            rootBeanDefinition.getPropertyValues().add(CONFIG_METHOD_NAME_ATTRIBUTE, configMethodName);
         }
+
+        parserContext.getRegistry().registerBeanDefinition(id, rootBeanDefinition);
 
         return rootBeanDefinition;
     }
