@@ -17,19 +17,15 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.kiwi.http.support.cons.HttpConstant;
-import org.kiwi.http.support.enums.ParameterOrder;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.enums.error.HttpErrorEnum;
 import org.kiwi.http.support.exception.HttpException;
 import org.kiwi.util.ReflectUtil;
-import org.kiwi.util.SignUtil;
-import org.springframework.util.Assert;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -47,7 +43,6 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         this.contentType = builder.contentType;
         this.charset = builder.charset;
         this.requestMethod = builder.requestMethod;
-        this.parameterOrder = builder.parameterOrder;
     }
 
     public <T> T doPost(String url, Map<String, String> params, HttpCallback<T> action)
@@ -57,8 +52,6 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
     public <T> T doPost(String url, Object params, HttpCallback<T> action)
             throws HttpException {
-        Assert.notNull(params, "params must not be null");
-
         return execute(url, params, RequestMethod.POST, action);
     }
 
@@ -67,14 +60,9 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         return execute(url, null, RequestMethod.GET, action);
     }
 
-
     public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
             throws HttpException {
-        Assert.notNull(params, "params must not be null");
-
-        Map<String, String> map = ReflectUtil.convertJavaBean2Map(params);
-
-        return execute(url, map, method, action);
+        return execute(url, params != null ? ReflectUtil.convertJavaBean2Map(params) : Maps.<String, String>newHashMap(), method, action);
     }
 
     public <T> T execute(String url, Map<String, String> params, RequestMethod method, HttpCallback<T> action)
@@ -83,16 +71,19 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         CloseableHttpResponse response = null;
 
         try {
-            //1.sort params and build sign
-            Map<String, String> sortedMapWithSign = sign(params, parameterOrder, charset);
+            //1.resolve immutable map problem
+            params = params != null ? Maps.newHashMap(params) : Maps.<String, String>newHashMap();
 
-            //2.create http or https client
-            httpclient = newHttpClient(protocol);
+            //2.build sign and other common param into params map
+            doSign(params, this.charset);
 
-            //3.send request
-            response = doExecute(httpclient, url, sortedMapWithSign, method);
+            //3.create http or https client
+            httpclient = newHttpClient(this.protocol);
 
-            //4.consume response
+            //4.send request
+            response = doExecute(httpclient, url, params, method);
+
+            //5.consume response
             if (response == null || response.getEntity() == null) {
                 throw new HttpException(HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorCode(),
                         HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorMessage());
@@ -106,18 +97,12 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                     logger.debug("ErrorMessage:" + response.toString());
                 }
 
-                switch (response.getStatusLine().getStatusCode()) {
-                    case HttpStatus.SC_METHOD_NOT_ALLOWED:
-                        throw new HttpException(HttpErrorEnum.SC_METHOD_NOT_ALLOWED.getErrorCode(),
-                                HttpErrorEnum.SC_METHOD_NOT_ALLOWED.getErrorMessage());
-                    default:
-                        throw new HttpException(HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorCode(),
-                                HttpErrorEnum.RESPONSE_STATUS_CODE_INVALID.getErrorMessage());
-                }
+                throw new HttpException(HttpErrorEnum.RESPONSE_FAILURE.getErrorCode(),
+                        HttpErrorEnum.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
 
             }
 
-            //5.invoke callback
+            //6.invoke callback
             return action.doParseResult(result);
 
         } catch (Exception e) {
@@ -126,6 +111,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             }
 
             if (e instanceof HttpHostConnectException) {
+                //// TODO: 2016/11/4 need retry
                 throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
                         HttpErrorEnum.CONNECTION_REFUSED.getErrorMessage());
             }
@@ -144,56 +130,13 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                 if (logger.isDebugEnabled()) {
                     logger.debug("release http connection has some problem.", e);
                 }
-
-                throw new HttpException(HttpErrorEnum.CLOSE_CHANNEL_ERROR.getErrorCode(),
-                        HttpErrorEnum.CLOSE_CHANNEL_ERROR.getErrorMessage());
             }
         }
     }
 
-    private Map<String, String> sign(Map<String, String> params, final ParameterOrder parameterOrder, String charset) {
-        Map<String, String> map = Maps.newLinkedHashMap();
-
-        if (params == null) {
-            return params;
-        }
-
-        if (parameterOrder == ParameterOrder.IMMUTABLE) {
-            map.putAll(params);
-        } else {
-            Map<String, String> treeMap = Maps.newTreeMap(new Comparator<String>() {
-
-                @Override
-                public int compare(String o1, String o2) {
-                    if (parameterOrder == ParameterOrder.ASC) {
-                        return o1.compareTo(o2);
-                    } else {
-                        return o2.compareTo(o1);
-                    }
-                }
-            });
-            map.putAll(treeMap);
-        }
-
-        doSign(map, charset);
-
-        return map;
-    }
-
-    private void doSign(Map<String, String> map, String charset) {
-        try {
-            if (this.signProvider != null) {
-                signProvider.doSign(map, charset);
-            } else {
-                String sign = SignUtil.sign(map, charset);
-                map.put(HttpConstant.SIGN_KEY, sign);
-            }
-
-        } catch (Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("do sign has some problem.", e);
-            }
-            logger.error("ErrorMessage:" + e.getMessage());
+    private void doSign(Map<String, String> params, String charset) {
+        if (this.signProvider != null) {
+            this.signProvider.doSign(params, charset);
         }
     }
 
@@ -226,7 +169,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         }
 
         if (requestParams.size() > 0) {
-            UrlEncodedFormEntity uefEntity = new UrlEncodedFormEntity(requestParams, charset);
+            UrlEncodedFormEntity uefEntity = new UrlEncodedFormEntity(requestParams, this.charset);
             httpPost.setEntity(uefEntity);
         }
 
@@ -263,7 +206,6 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         String contentType = HttpConstant.DEFAULT_CONTENT_TYPE;
         String charset = HttpConstant.DEFAULT_CHARSET;
         RequestMethod requestMethod = RequestMethod.POST;
-        ParameterOrder parameterOrder = ParameterOrder.IMMUTABLE;
 
         public Builder protocol(Protocol protocol) {
             this.protocol = protocol;
@@ -282,11 +224,6 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
         public Builder requestMethod(RequestMethod requestMethod) {
             this.requestMethod = requestMethod;
-            return this;
-        }
-
-        public Builder parameterOrder(ParameterOrder parameterOrder) {
-            this.parameterOrder = parameterOrder;
             return this;
         }
 

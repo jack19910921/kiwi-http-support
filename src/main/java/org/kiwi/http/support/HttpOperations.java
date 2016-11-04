@@ -20,5 +20,4 @@ public interface HttpOperations {
 
     <T> T doGet(String url, HttpCallback<T> action) throws HttpException;
 
-    // and so on ...
 }

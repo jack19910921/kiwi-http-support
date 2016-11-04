@@ -8,24 +8,22 @@ import org.springframework.util.Assert;
 public enum RequestMethod {
     POST("post"), GET("get"), PUT("put"), DELETE("delete");
 
-    private String label;
+    private String text;
 
-    RequestMethod(String label) {
-        this.label = label;
+    RequestMethod(String text) {
+        this.text = text;
     }
 
-    public String getLabel() {
-        return label;
+    public String getText() {
+        return text;
     }
 
-    public static RequestMethod determineRequestMethodByLabel(String label) {
-        Assert.notNull(label, "label is required");
-
+    public static RequestMethod determineRequestMethodByText(String text) {
+        Assert.notNull(text, "text is required");
         for (RequestMethod p : RequestMethod.values()) {
-            if (p.getLabel().equalsIgnoreCase(label))
+            if (p.getText().equalsIgnoreCase(text))
                 return p;
         }
-
         return POST;
     }
 }

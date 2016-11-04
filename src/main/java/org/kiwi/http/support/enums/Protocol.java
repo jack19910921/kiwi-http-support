@@ -8,24 +8,22 @@ import org.springframework.util.Assert;
 public enum Protocol {
     HTTP("http"), HTTPS("https");
 
-    private String label;
+    private String text;
 
-    Protocol(String label) {
-        this.label = label;
+    Protocol(String text) {
+        this.text = text;
     }
 
-    public String getLabel() {
-        return label;
+    public String getText() {
+        return text;
     }
 
-    public static Protocol determineProtocolByLabel(String label) {
-        Assert.notNull(label, "label is required");
-
+    public static Protocol determineProtocolByText(String text) {
+        Assert.notNull(text, "text is required");
         for (Protocol p : Protocol.values()) {
-            if (p.getLabel().equalsIgnoreCase(label))
+            if (p.getText().equalsIgnoreCase(text))
                 return p;
         }
-
         return HTTP;
     }
 }

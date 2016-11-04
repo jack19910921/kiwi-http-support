@@ -2,11 +2,11 @@ package org.kiwi.http.support;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.Test;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.exception.HttpException;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.Test;
 
 import java.util.Map;
 
@@ -29,7 +29,7 @@ public class HttpTest {
             Map<String, String> response = httpTemplate.doGet(url, new HttpCallback<Map<String, String>>() {
 
                 @Override
-                public Map<String, String> doParseResult(String result) throws HttpException {
+                public Map<String, String> doParseResult(String result) {
                     return (Map<String, String>) JSON.parse(result);
                 }
             });
@@ -56,7 +56,7 @@ public class HttpTest {
                     new HttpCallback<Map<String, String>>() {
 
                         @Override
-                        public Map<String, String> doParseResult(String result) throws HttpException {
+                        public Map<String, String> doParseResult(String result) {
                             return (Map<String, String>) JSON.parse(result);
                         }
                     });

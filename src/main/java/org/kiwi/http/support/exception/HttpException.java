@@ -13,6 +13,7 @@ public class HttpException extends Exception {
     }
 
     public HttpException(String errorCode, String errorMessage) {
+        super(errorMessage);
         this.errorCode = errorCode;
         this.errorMessage = errorMessage;
     }
@@ -36,10 +37,10 @@ public class HttpException extends Exception {
     }
 
     public String getErrorCode() {
-        return errorCode;
+        return this.errorCode;
     }
 
     public String getErrorMessage() {
-        return errorMessage;
+        return this.errorMessage;
     }
 }

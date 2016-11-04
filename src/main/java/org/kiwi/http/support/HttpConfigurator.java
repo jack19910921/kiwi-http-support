@@ -1,7 +1,6 @@
 package org.kiwi.http.support;
 
 import org.kiwi.http.support.cons.HttpConstant;
-import org.kiwi.http.support.enums.ParameterOrder;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
@@ -31,7 +30,6 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
     protected String contentType;
     protected String charset;
     protected RequestMethod requestMethod;
-    protected ParameterOrder parameterOrder;
 
     protected String configClass = HttpConstant.DEFAULT_CONFIG_CLASS;
     protected String configMethodName = HttpConstant.DEFAULT_CONFIG_METHOD_NAME;
@@ -54,7 +52,6 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
         Assert.notNull(this.contentType, "contentType is required");
         Assert.notNull(this.charset, "charset is required");
         Assert.notNull(this.requestMethod, "requestMethod is required");
-        Assert.notNull(this.parameterOrder, "parameterOrder is required");
     }
 
     private void initConfig() {
@@ -108,13 +105,10 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
                     method.setAccessible(true);
 
                     String protocolStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
-                    this.protocol = Protocol.determineProtocolByLabel(protocolStr);
+                    this.protocol = Protocol.determineProtocolByText(protocolStr);
 
                     String requestMethodStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
-                    this.requestMethod = RequestMethod.determineRequestMethodByLabel(requestMethodStr);
-
-                    String parameterOrderStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER);
-                    this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(parameterOrderStr);
+                    this.requestMethod = RequestMethod.determineRequestMethodByText(requestMethodStr);
 
                     String contentType = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
                     this.contentType = contentType;
@@ -164,9 +158,8 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
     }
 
     private void initConfigBySpiImpl(ConfigProvider configProvider) {
-        this.protocol = Protocol.determineProtocolByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL));
-        this.requestMethod = RequestMethod.determineRequestMethodByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD));
-        this.parameterOrder = ParameterOrder.determineParameterOrderByLabel(configProvider.getString(HttpConstant.CONFIG_KEY_PARAMETER_ORDER, HttpConstant.DEFAULT_PARAMETER_ORDER));
+        this.protocol = Protocol.determineProtocolByText(configProvider.getString(HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL));
+        this.requestMethod = RequestMethod.determineRequestMethodByText(configProvider.getString(HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD));
         this.contentType = configProvider.getString(HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
         this.charset = configProvider.getString(HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
     }
@@ -176,11 +169,9 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
         this.contentType = HttpConstant.DEFAULT_CONTENT_TYPE;
         this.charset = HttpConstant.DEFAULT_CHARSET;
         this.requestMethod = RequestMethod.POST;
-        this.parameterOrder = ParameterOrder.IMMUTABLE;
     }
 
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
     }
-
 }
