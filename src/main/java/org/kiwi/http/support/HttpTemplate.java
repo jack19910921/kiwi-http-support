@@ -17,7 +17,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
-import org.kiwi.http.support.enums.error.HttpErrorEnum;
+import org.kiwi.http.support.enums.HttpError;
 import org.kiwi.http.support.exception.HttpException;
 import org.kiwi.util.ReflectUtil;
 
@@ -89,8 +89,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
             //consume response
             if (response == null || response.getEntity() == null) {
-                throw new HttpException(HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorCode(),
-                        HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorMessage());
+                throw new HttpException(HttpError.RESPONSE_IS_EMPTY.getErrorCode(),
+                        HttpError.RESPONSE_IS_EMPTY.getErrorMessage());
             }
 
             HttpEntity entity = response.getEntity();
@@ -100,8 +100,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                 if (logger.isDebugEnabled()) {
                     logger.debug("ErrorMessage:" + response.toString());
                 }
-                throw new HttpException(HttpErrorEnum.RESPONSE_FAILURE.getErrorCode(),
-                        HttpErrorEnum.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
+                throw new HttpException(HttpError.RESPONSE_FAILURE.getErrorCode(),
+                        HttpError.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
             }
 
             //invoke callback
@@ -131,8 +131,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                         logger.debug("retry staff is not open or arrive limit retry cnt.");
                     }
 
-                    throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
-                            HttpErrorEnum.CONNECTION_REFUSED.getErrorMessage());
+                    throw new HttpException(HttpError.CONNECTION_REFUSED.getErrorCode(),
+                            HttpError.CONNECTION_REFUSED.getErrorMessage());
                 }
             }
 
@@ -140,11 +140,11 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                 throw (HttpException) e;
             }
             if (e instanceof UnknownHostException) {
-                throw new HttpException(HttpErrorEnum.UNKNOWN_HOST.getErrorCode(),
-                        HttpErrorEnum.UNKNOWN_HOST.getErrorMessage());
+                throw new HttpException(HttpError.UNKNOWN_HOST.getErrorCode(),
+                        HttpError.UNKNOWN_HOST.getErrorMessage());
             }
-            throw new HttpException(HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorCode(),
-                    HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorMessage());
+            throw new HttpException(HttpError.SYSTEM_INTERNAL_ERROR.getErrorCode(),
+                    HttpError.SYSTEM_INTERNAL_ERROR.getErrorMessage());
         } finally {
             HttpConnectionHolder.released();
             if (HttpConnectionHolder.getReferenceCount() == 0) {
@@ -174,8 +174,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
             return doGetInternal(httpclient, url);
         }
 
-        throw new HttpException(HttpErrorEnum.UNSUPPORTED_REQUEST_METHOD.getErrorCode(),
-                HttpErrorEnum.UNSUPPORTED_REQUEST_METHOD.getErrorMessage());
+        throw new HttpException(HttpError.UNSUPPORTED_REQUEST_METHOD.getErrorCode(),
+                HttpError.UNSUPPORTED_REQUEST_METHOD.getErrorMessage());
     }
 
     private CloseableHttpResponse doGetInternal(CloseableHttpClient httpclient, String url)

@@ -15,7 +15,7 @@ public enum RequestMethod {
     }
 
     public String getText() {
-        return text;
+        return this.text;
     }
 
     public static RequestMethod determineRequestMethodByText(String text) {

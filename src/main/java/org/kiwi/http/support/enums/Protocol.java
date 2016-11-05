@@ -15,7 +15,7 @@ public enum Protocol {
     }
 
     public String getText() {
-        return text;
+        return this.text;
     }
 
     public static Protocol determineProtocolByText(String text) {
