@@ -13,6 +13,9 @@
                     <xsd:attribute name="class" type="xsd:string" use="optional"/>
                     <xsd:attribute name="configClass" type="xsd:string" use="optional"/>
                     <xsd:attribute name="configMethodName" type="xsd:string" use="optional"/>
+                    <xsd:attribute name="retryCnt" type="xsd:int" use="optional"/>
+                    <xsd:attribute name="retryInterval" type="xsd:int" use="optional"/>
+                    <xsd:attribute name="retryStaffIsOn" type="xsd:boolean" use="optional"/>
                 </xsd:extension>
             </xsd:complexContent>
         </xsd:complexType>

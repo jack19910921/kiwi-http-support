@@ -5,6 +5,7 @@ import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
 import org.kiwi.http.support.spi.SignProvider;
+import org.kiwi.util.ReflectUtil;
 import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.BeansException;
@@ -14,15 +15,21 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
+import javax.annotation.PostConstruct;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.lang.management.ManagementFactory;
 import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.ServiceLoader;
 
+import static org.kiwi.http.support.cons.HttpConstant.*;
+
 /**
  * Created by jack on 16/7/31.
  */
-public abstract class HttpConfigurator implements InitializingBean, ApplicationContextAware {
+public abstract class HttpConfigurator implements InitializingBean, ApplicationContextAware, HttpConfiguratorMBean {
 
     protected final Logger logger = KLoggerFactory.getLogger(this.getClass());
 
@@ -31,9 +38,13 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
     protected String charset;
     protected RequestMethod requestMethod;
 
-    protected String configClass = HttpConstant.DEFAULT_CONFIG_CLASS;
-    protected String configMethodName = HttpConstant.DEFAULT_CONFIG_METHOD_NAME;
+    protected String configClass = DEFAULT_CONFIG_CLASS;
+    protected String configMethodName = DEFAULT_CONFIG_METHOD_NAME;
     protected SignProvider signProvider;
+
+    protected volatile int retryCnt = DEFAULT_RETRY_CNT;
+    protected volatile int retryInterval = DEFAULT_RETRY_INTERVAL;
+    protected volatile boolean retryStaffIsOn = DEFAULT_RETRY_STAFF_IS_ON;
 
     protected ApplicationContext applicationContext;
 
@@ -43,6 +54,47 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
 
     public void setConfigMethodName(String configMethodName) {
         this.configMethodName = configMethodName;
+    }
+
+    @Override
+    public void setRetryCnt(int retryCnt) {
+        this.retryCnt = retryCnt;
+    }
+
+    @Override
+    public void setRetryInterval(int retryInterval) {
+        this.retryInterval = retryInterval;
+    }
+
+    @Override
+    public void setRetryStaffIsOn(boolean retryStaffIsOn) {
+        this.retryStaffIsOn = retryStaffIsOn;
+    }
+
+    @Override
+    public Map<String, String> getConfig() {
+        return ReflectUtil.convertJavaBean2Map(this);
+    }
+
+    @PostConstruct
+    public void register() {
+        synchronized (this) {
+            try {
+                String mbeanName = this.getClass().getSimpleName();
+
+                MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+                ObjectName objectName = new ObjectName("org.kiwi.http:type=" + mbeanName);
+
+                if (!mbeanServer.isRegistered(objectName)) {
+                    mbeanServer.registerMBean(this, objectName);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("org.kiwi.http:type=" + mbeanName + " registered successfully");
+                    }
+                }
+            } catch (Exception e) {
+                logger.debug(e.getMessage());
+            }
+        }
     }
 
     public void afterPropertiesSet() {
@@ -104,10 +156,10 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
                     Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
                     method.setAccessible(true);
 
-                    String protocolStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
+                    String protocolStr = (String) method.invoke(configManager, CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
                     this.protocol = Protocol.determineProtocolByText(protocolStr);
 
-                    String requestMethodStr = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
+                    String requestMethodStr = (String) method.invoke(configManager, CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
                     this.requestMethod = RequestMethod.determineRequestMethodByText(requestMethodStr);
 
                     String contentType = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
@@ -116,9 +168,7 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
                     String charset = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
                     this.charset = charset;
                 } catch (ClassNotFoundException e) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug(e.getMessage());
-                    }
+                    logger.debug("load config has some problem,using default config.[{}]", e.getMessage());
                     initDefaultConfig();
                 }
             }
@@ -149,25 +199,23 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
             }
 
         } catch (Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("load config has some problem,using default config.", e);
-            }
+            logger.debug("load config has some problem,using default config.", e);
             initDefaultConfig();
         }
 
     }
 
     private void initConfigBySpiImpl(ConfigProvider configProvider) {
-        this.protocol = Protocol.determineProtocolByText(configProvider.getString(HttpConstant.CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL));
-        this.requestMethod = RequestMethod.determineRequestMethodByText(configProvider.getString(HttpConstant.CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD));
-        this.contentType = configProvider.getString(HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
-        this.charset = configProvider.getString(HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
+        this.protocol = Protocol.determineProtocolByText(configProvider.getString(CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL));
+        this.requestMethod = RequestMethod.determineRequestMethodByText(configProvider.getString(CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD));
+        this.contentType = configProvider.getString(CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
+        this.charset = configProvider.getString(CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
     }
 
     private void initDefaultConfig() {
         this.protocol = Protocol.HTTP;
-        this.contentType = HttpConstant.DEFAULT_CONTENT_TYPE;
-        this.charset = HttpConstant.DEFAULT_CHARSET;
+        this.contentType = DEFAULT_CONTENT_TYPE;
+        this.charset = DEFAULT_CHARSET;
         this.requestMethod = RequestMethod.POST;
     }
 

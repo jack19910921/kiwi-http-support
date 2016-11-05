@@ -38,6 +38,20 @@ public class HttpParser implements BeanDefinitionParser {
      */
     public static final String CONFIG_METHOD_NAME_ATTRIBUTE = "configMethodName";
 
+    /**
+     * Constant for the retryCnt attribute
+     */
+    public static final String RETRY_CNT_ATTRIBUTE = "retryCnt";
+
+    /**
+     * Constant for the retryInterval attribute
+     */
+    public static final String RETRY_INTERVAL_ATTRIBUTE = "retryInterval";
+
+    /**
+     * Constant for the retryStaffIsOn attribute
+     */
+    public static final String RETRY_STAFF_IS_ON_ATTRIBUTE = "retryStaffIsOn";
 
     @Override
     public BeanDefinition parse(Element element, ParserContext parserContext) {
@@ -78,6 +92,24 @@ public class HttpParser implements BeanDefinitionParser {
         String configMethodName = element.getAttribute(CONFIG_METHOD_NAME_ATTRIBUTE);
         if (StringUtils.isNotBlank(configMethodName)) {
             rootBeanDefinition.getPropertyValues().add(CONFIG_METHOD_NAME_ATTRIBUTE, configMethodName);
+        }
+
+        //retryCnt
+        String retryCnt = element.getAttribute(RETRY_CNT_ATTRIBUTE);
+        if (StringUtils.isNotBlank(retryCnt)) {
+            rootBeanDefinition.getPropertyValues().add(RETRY_CNT_ATTRIBUTE, retryCnt);
+        }
+
+        //retryInterval
+        String retryInterval = element.getAttribute(RETRY_INTERVAL_ATTRIBUTE);
+        if (StringUtils.isNotBlank(retryInterval)) {
+            rootBeanDefinition.getPropertyValues().add(RETRY_INTERVAL_ATTRIBUTE, retryInterval);
+        }
+
+        //retryStaffIsOn
+        String retryStaffIsOn = element.getAttribute(RETRY_STAFF_IS_ON_ATTRIBUTE);
+        if (StringUtils.isNotBlank(retryStaffIsOn)) {
+            rootBeanDefinition.getPropertyValues().add(RETRY_STAFF_IS_ON_ATTRIBUTE, retryStaffIsOn);
         }
 
         parserContext.getRegistry().registerBeanDefinition(id, rootBeanDefinition);

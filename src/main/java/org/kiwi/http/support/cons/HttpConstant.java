@@ -25,7 +25,16 @@ public class HttpConstant {
     public static final String DEFAULT_CONFIG_CLASS = "com.vip.xfd.account.components.ConfigManager";
     public static final String DEFAULT_CONFIG_METHOD_NAME = "getString";
 
+    /**
+     * ssl config
+     */
     public static final int DEFAULT_CONNECT_TIME = -1;
-
     public static final String TLS = "TLS";
+
+    /**
+     * retry config
+     */
+    public static final int DEFAULT_RETRY_CNT = 1;
+    public static final int DEFAULT_RETRY_INTERVAL = 1000;
+    public static final boolean DEFAULT_RETRY_STAFF_IS_ON = false;
 }

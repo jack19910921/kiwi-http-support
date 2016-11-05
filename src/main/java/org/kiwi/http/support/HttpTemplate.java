@@ -16,7 +16,6 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
-import org.kiwi.http.support.cons.HttpConstant;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.enums.error.HttpErrorEnum;
@@ -26,9 +25,13 @@ import org.kiwi.util.ReflectUtil;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+
+import static org.kiwi.http.support.cons.HttpConstant.*;
 
 /**
  * Created by jack on 16/7/29.
@@ -70,18 +73,19 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         CloseableHttpClient httpclient = null;
         CloseableHttpResponse response = null;
 
+        HttpConnectionHolder.requested();
         try {
-            //1.resolve immutable map problem
-            params = params != null ? Maps.newHashMap(params) : Maps.<String, String>newHashMap();
+            //1.resolve immutable map problem and retry problem
+            Map<String, String> paramMap = params != null ? Maps.newHashMap(params) : Maps.<String, String>newHashMap();
 
             //2.build sign and other common param into params map
-            doSign(params, this.charset);
+            doSign(paramMap, this.charset);
 
             //3.create http or https client
             httpclient = newHttpClient(this.protocol);
 
             //4.send request
-            response = doExecute(httpclient, url, params, method);
+            response = doExecute(httpclient, url, paramMap, method);
 
             //5.consume response
             if (response == null || response.getEntity() == null) {
@@ -96,40 +100,62 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                 if (logger.isDebugEnabled()) {
                     logger.debug("ErrorMessage:" + response.toString());
                 }
-
                 throw new HttpException(HttpErrorEnum.RESPONSE_FAILURE.getErrorCode(),
                         HttpErrorEnum.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
-
             }
 
             //6.invoke callback
             return action.doParseResult(result);
 
         } catch (Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("http invoke has some problem.", e);
-            }
+            logger.debug("http invoke has some problem.", e);
 
             if (e instanceof HttpHostConnectException) {
-                //// TODO: 2016/11/4 need retry
-                throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
-                        HttpErrorEnum.CONNECTION_REFUSED.getErrorMessage());
+                // need retry
+                if (this.retryStaffIsOn && HttpConnectionHolder.getRetryCnt() < this.retryCnt) {
+
+                    int retryCnt = HttpConnectionHolder.getAndIncrementRetryCnt();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("reconnect to server and retryCnt is {}", retryCnt);
+                    }
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(this.retryInterval);
+                    } catch (InterruptedException e1) {
+                        //do nothing
+                    }
+
+                    return execute(url, params, method, action);
+
+                } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("arrive limit retry cnt:{}", HttpConnectionHolder.getRetryCnt());
+                    }
+
+                    throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
+                            HttpErrorEnum.CONNECTION_REFUSED.getErrorMessage());
+                }
             }
 
             if (e instanceof HttpException) {
                 throw (HttpException) e;
             }
-
+            if (e instanceof UnknownHostException) {
+                throw new HttpException(HttpErrorEnum.UNKNOWN_HOST.getErrorCode(),
+                        HttpErrorEnum.UNKNOWN_HOST.getErrorMessage());
+            }
             throw new HttpException(HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorCode(),
                     HttpErrorEnum.SYSTEM_INTERNAL_ERROR.getErrorMessage());
         } finally {
+            HttpConnectionHolder.released();
+            if (HttpConnectionHolder.getReferenceCount() == 0) {
+                HttpConnectionHolder.reset();
+            }
+
             try {
                 if (response != null) response.close();
                 if (httpclient != null) httpclient.close();
             } catch (IOException e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("release http connection has some problem.", e);
-                }
+                logger.debug("release http connection has some problem.");
             }
         }
     }
@@ -187,8 +213,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
     private CloseableHttpClient newHttpsClient() throws Exception {
         X509TrustManager x509mgr = HttpsSupport.newX509TrustManager();
         RequestConfig requestConfig = RequestConfig.custom()
-                .setSocketTimeout(HttpConstant.DEFAULT_CONNECT_TIME)
-                .setConnectTimeout(HttpConstant.DEFAULT_CONNECT_TIME)
+                .setSocketTimeout(DEFAULT_CONNECT_TIME)
+                .setConnectTimeout(DEFAULT_CONNECT_TIME)
                 .build();
 
         SSLContext sslContext = HttpsSupport.newSSLContext(x509mgr);
@@ -203,8 +229,8 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
     public static final class Builder {
 
         Protocol protocol = Protocol.HTTP;
-        String contentType = HttpConstant.DEFAULT_CONTENT_TYPE;
-        String charset = HttpConstant.DEFAULT_CHARSET;
+        String contentType = DEFAULT_CONTENT_TYPE;
+        String charset = DEFAULT_CHARSET;
         RequestMethod requestMethod = RequestMethod.POST;
 
         public Builder protocol(Protocol protocol) {
