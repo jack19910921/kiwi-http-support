@@ -75,19 +75,19 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
         HttpConnectionHolder.requested();
         try {
-            //1.resolve immutable map problem and retry problem
+            //resolve immutable map problem and retry problem
             Map<String, String> paramMap = params != null ? Maps.newHashMap(params) : Maps.<String, String>newHashMap();
 
-            //2.build sign and other common param into params map
+            //build sign and other common param into params map
             doSign(paramMap, this.charset);
 
-            //3.create http or https client
+            //create http or https client
             httpclient = newHttpClient(this.protocol);
 
-            //4.send request
+            //send request
             response = doExecute(httpclient, url, paramMap, method);
 
-            //5.consume response
+            //consume response
             if (response == null || response.getEntity() == null) {
                 throw new HttpException(HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorCode(),
                         HttpErrorEnum.RESPONSE_IS_EMPTY.getErrorMessage());
@@ -104,7 +104,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
                         HttpErrorEnum.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
             }
 
-            //6.invoke callback
+            //invoke callback
             return action.doParseResult(result);
 
         } catch (Exception e) {
@@ -128,7 +128,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
                 } else {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("arrive limit retry cnt {}", HttpConnectionHolder.getRetryCnt());
+                        logger.debug("retry staff is not open or arrive limit retry cnt.");
                     }
 
                     throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),
