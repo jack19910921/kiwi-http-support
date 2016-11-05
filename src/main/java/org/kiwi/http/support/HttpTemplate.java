@@ -10,7 +10,6 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -25,6 +24,7 @@ import org.kiwi.util.ReflectUtil;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
@@ -110,7 +110,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
         } catch (Exception e) {
             logger.debug("http invoke has some problem.", e);
 
-            if (e instanceof HttpHostConnectException) {
+            if (ConnectException.class.isAssignableFrom(e.getClass())) {
                 // need retry
                 if (this.retryStaffIsOn && HttpConnectionHolder.getRetryCnt() < this.retryCnt) {
 
@@ -128,7 +128,7 @@ public class HttpTemplate extends HttpConfigurator implements HttpOperations {
 
                 } else {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("arrive limit retry cnt:{}", HttpConnectionHolder.getRetryCnt());
+                        logger.debug("arrive limit retry cnt {}", HttpConnectionHolder.getRetryCnt());
                     }
 
                     throw new HttpException(HttpErrorEnum.CONNECTION_REFUSED.getErrorCode(),

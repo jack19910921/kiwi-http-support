@@ -71,12 +71,10 @@ public class HttpParser implements BeanDefinitionParser {
             try {
                 Class clazz = Class.forName(className);
                 if (!HttpTemplate.class.isAssignableFrom(clazz)) {
-                    throw new IllegalArgumentException("className attribute:{" + className + "} is invalid.");
+                    throw new IllegalArgumentException("className attribute:[" + className + "] is invalid.");
                 }
             } catch (ClassNotFoundException e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Class:{" + className + "} not found.", e);
-                }
+                logger.debug("[" + className + "] not found.");
                 className = HttpTemplate.class.getName();
             }
         }
