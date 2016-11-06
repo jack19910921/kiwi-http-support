@@ -1,6 +1,5 @@
 package org.kiwi.http.support;
 
-import org.kiwi.http.support.cons.HttpConstant;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
@@ -115,7 +114,7 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
 
             /**
              * look up ConfigProvider spi implementation from classpath.
-             * search all (META-INF/services/ConfigProvider) file in classpath.
+             * search all (META-INF/services/org.kiwi.http.support.spi.ConfigProvider) file in classpath.
              */
             ServiceLoader<ConfigProvider> serviceLoader = ServiceLoader.load(ConfigProvider.class);
             Iterator<ConfigProvider> iterator = serviceLoader.iterator();
@@ -156,16 +155,16 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
                     Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
                     method.setAccessible(true);
 
-                    String protocolStr = (String) method.invoke(configManager, CONFIG_KEY_PROTOCOL, HttpConstant.DEFAULT_PROTOCOL);
+                    String protocolStr = (String) method.invoke(configManager, CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL);
                     this.protocol = Protocol.determineProtocolByText(protocolStr);
 
-                    String requestMethodStr = (String) method.invoke(configManager, CONFIG_KEY_REQUEST_METHOD, HttpConstant.DEFAULT_REQUEST_METHOD);
+                    String requestMethodStr = (String) method.invoke(configManager, CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD);
                     this.requestMethod = RequestMethod.determineRequestMethodByText(requestMethodStr);
 
-                    String contentType = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CONTENT_TYPE, HttpConstant.DEFAULT_CONTENT_TYPE);
+                    String contentType = (String) method.invoke(configManager, CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
                     this.contentType = contentType;
 
-                    String charset = (String) method.invoke(configManager, HttpConstant.CONFIG_KEY_CHARSET, HttpConstant.DEFAULT_CHARSET);
+                    String charset = (String) method.invoke(configManager, CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
                     this.charset = charset;
                 } catch (ClassNotFoundException e) {
                     logger.debug("load config has some problem,using default config.[{}]", e.getMessage());
