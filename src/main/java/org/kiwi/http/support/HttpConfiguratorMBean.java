@@ -1,7 +1,5 @@
 package org.kiwi.http.support;
 
-import java.util.Map;
-
 /**
  * Created by jack on 16/11/5.
  */
@@ -12,5 +10,9 @@ public interface HttpConfiguratorMBean {
 
     void setRetryStaffIsOn(boolean retryStaffIsOn);
 
-    Map<String, String> getConfig();
+    int getRetryCnt();
+
+    int getRetryInterval();
+
+    boolean isRetryStaffIsOn();
 }

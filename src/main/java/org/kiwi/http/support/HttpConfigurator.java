@@ -4,7 +4,6 @@ import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
 import org.kiwi.http.support.spi.SignProvider;
-import org.kiwi.util.ReflectUtil;
 import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.BeansException;
@@ -71,8 +70,18 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
     }
 
     @Override
-    public Map<String, String> getConfig() {
-        return ReflectUtil.convertJavaBean2Map(this);
+    public int getRetryCnt() {
+        return this.retryCnt;
+    }
+
+    @Override
+    public int getRetryInterval() {
+        return this.retryInterval;
+    }
+
+    @Override
+    public boolean isRetryStaffIsOn() {
+        return this.retryStaffIsOn;
     }
 
     @PostConstruct
