@@ -3,7 +3,7 @@ package org.kiwi.http.support;
 /**
  * Created by jack on 16/11/5.
  */
-public interface HttpConfiguratorMBean {
+public interface HttpConfigurerMBean {
     void setRetryCnt(int retryCnt);
 
     void setRetryInterval(int retryInterval);

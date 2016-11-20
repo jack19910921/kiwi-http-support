@@ -13,7 +13,6 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.PostConstruct;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
@@ -27,7 +26,7 @@ import static org.kiwi.http.support.cons.HttpConstant.*;
 /**
  * Created by jack on 16/7/31.
  */
-public abstract class HttpConfigurator implements InitializingBean, ApplicationContextAware, HttpConfiguratorMBean {
+public abstract class HttpConfigurer implements InitializingBean, ApplicationContextAware, HttpConfigurerMBean {
 
     protected final Logger logger = KLoggerFactory.getLogger(this.getClass());
 
@@ -84,7 +83,6 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
         return this.retryStaffIsOn;
     }
 
-    @PostConstruct
     public void register() {
         synchronized (this) {
             try {
@@ -112,6 +110,8 @@ public abstract class HttpConfigurator implements InitializingBean, ApplicationC
         Assert.notNull(this.contentType, "contentType is required");
         Assert.notNull(this.charset, "charset is required");
         Assert.notNull(this.requestMethod, "requestMethod is required");
+
+        register();
     }
 
     private void initConfig() {

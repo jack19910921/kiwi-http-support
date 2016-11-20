@@ -36,7 +36,7 @@ import static org.kiwi.http.support.cons.HttpConstant.*;
 /**
  * Created by jack on 16/7/29.
  */
-public class HttpTemplate extends HttpConfigurator implements HttpOperations {
+public class HttpTemplate extends HttpConfigurer implements HttpOperations {
 
     public HttpTemplate() {
     }
