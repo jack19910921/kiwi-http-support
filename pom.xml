@@ -14,6 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <httpclient.version>4.5.1</httpclient.version>
+        <fastjson.version>1.2.7</fastjson.version>
         <junit.version>4.10</junit.version>
         <maven.source.plugin.version>2.4</maven.source.plugin.version>
         <surefire.version>2.12.4</surefire.version>
@@ -29,6 +30,11 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>${fastjson.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
