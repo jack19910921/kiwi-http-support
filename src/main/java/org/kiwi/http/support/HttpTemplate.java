@@ -1,7 +1,5 @@
 package org.kiwi.http.support;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
@@ -15,9 +13,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.kiwi.http.support.enums.HttpError;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
-import org.kiwi.http.support.enums.HttpError;
 import org.kiwi.http.support.exception.HttpException;
 import org.kiwi.util.ReflectUtil;
 
@@ -26,6 +24,8 @@ import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -65,7 +65,7 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
 
     public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
             throws HttpException {
-        return execute(url, params != null ? ReflectUtil.convertJavaBean2Map(params) : Maps.<String, String>newHashMap(), method, action);
+        return execute(url, params != null ? ReflectUtil.convertJavaBean2Map(params) : new HashMap<>(), method, action);
     }
 
     public <T> T execute(String url, Map<String, String> params, RequestMethod method, HttpCallback<T> action)
@@ -76,7 +76,7 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         HttpConnectionHolder.requested();
         try {
             //resolve immutable map problem and retry problem
-            Map<String, String> paramMap = params != null ? Maps.newHashMap(params) : Maps.<String, String>newHashMap();
+            Map<String, String> paramMap = params != null ? new HashMap<>(params) : new HashMap<String, String>();
 
             //build sign and other common param into params map
             doSign(paramMap, this.charset);
@@ -189,7 +189,7 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
             throws Exception {
         HttpPost httpPost = new HttpPost(url);
 
-        List<NameValuePair> requestParams = Lists.newArrayList();
+        List<NameValuePair> requestParams = new ArrayList<>();
         for (Entry<String, String> entry : params.entrySet()) {
             requestParams.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
         }

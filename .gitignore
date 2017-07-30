@@ -33,7 +33,7 @@ target/
 .classpath
 .project
 .metadata
-venus-*/src/main/java/META-INF/MANIFEST.MF
+kiwi-*/src/main/java/META-INF/MANIFEST.MF
 .eclipse-pmd
 # IDEA artifacts and output dirs
 *.iml

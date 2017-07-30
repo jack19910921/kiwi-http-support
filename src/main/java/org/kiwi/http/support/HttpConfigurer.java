@@ -4,8 +4,8 @@ import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
 import org.kiwi.http.support.spi.SignProvider;
-import org.kiwi.util.log.KLoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
@@ -28,7 +28,7 @@ import static org.kiwi.http.support.cons.HttpConstant.*;
  */
 public abstract class HttpConfigurer implements InitializingBean, ApplicationContextAware, HttpConfigurerMBean {
 
-    protected final Logger logger = KLoggerFactory.getLogger(this.getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected Protocol protocol;
     protected String contentType;
