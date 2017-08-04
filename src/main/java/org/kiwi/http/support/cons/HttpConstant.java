@@ -13,6 +13,9 @@ public class HttpConstant {
     public static final String CONFIG_KEY_REQUEST_METHOD = CONFIG_KEY_PREFIX + "requestMethod";
     public static final String CONFIG_KEY_CONTENT_TYPE = CONFIG_KEY_PREFIX + "contentType";
     public static final String CONFIG_KEY_CHARSET = CONFIG_KEY_PREFIX + "charset";
+    public static final String CONFIG_KEY_CONNECTION_REQUEST_TIMEOUT = CONFIG_KEY_PREFIX + "connectionRequestTimeout";
+    public static final String CONFIG_KEY_SOCKET_TIMEOUT = CONFIG_KEY_PREFIX + "socketTimeout";
+    public static final String CONFIG_KEY_CONNECT_TIMEOUT = CONFIG_KEY_PREFIX + "connectTimeout";
 
     /**
      * config param default value
@@ -22,13 +25,14 @@ public class HttpConstant {
     public static final String DEFAULT_CONTENT_TYPE = "application/json";
     public static final String DEFAULT_CHARSET = "UTF-8";
 
-    public static final String DEFAULT_CONFIG_CLASS = "com.vip.xfd.account.components.ConfigManager";
-    public static final String DEFAULT_CONFIG_METHOD_NAME = "getString";
+    public static final String DEFAULT_TIMEOUT_STR = "-1";
 
-    /**
-     * ssl config
-     */
-    public static final int DEFAULT_CONNECT_TIME = -1;
+    public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = -1;
+    public static final int DEFAULT_SOCKET_TIMEOUT = -1;
+    public static final int DEFAULT_CONNECT_TIMEOUT = -1;
+
+    public static final String MIME_TYPE_XML = "text/xml";
+
     public static final String TLS = "TLS";
 
     /**

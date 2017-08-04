@@ -1,15 +1,19 @@
 package org.kiwi.http.support;
 
+import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.EntityBuilder;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -46,6 +50,9 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         this.contentType = builder.contentType;
         this.charset = builder.charset;
         this.requestMethod = builder.requestMethod;
+        this.connectionRequestTimeout = builder.connectionRequestTimeout;
+        this.socketTimeout = builder.socketTimeout;
+        this.connectTimeout = builder.connectTimeout;
     }
 
     public <T> T doPost(String url, Map<String, String> params, HttpCallback<T> action)
@@ -63,79 +70,23 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         return execute(url, null, RequestMethod.GET, action);
     }
 
-    public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
-            throws HttpException {
-        return execute(url, params != null ? ReflectUtil.convertJavaBean2Map(params) : new HashMap<>(), method, action);
-    }
-
-    public <T> T execute(String url, Map<String, String> params, RequestMethod method, HttpCallback<T> action)
-            throws HttpException {
+    @Override
+    public <T> T executeXml(String url, String xml, HttpCallback<T> action) throws HttpException {
         CloseableHttpClient httpclient = null;
         CloseableHttpResponse response = null;
-
-        HttpConnectionHolder.requested();
         try {
-            //resolve immutable map problem and retry problem
-            Map<String, String> paramMap = params != null ? new HashMap<>(params) : new HashMap<String, String>();
-
-            //build sign and other common param into params map
-            doSign(paramMap, this.charset);
-
             //create http or https client
             httpclient = newHttpClient(this.protocol);
-
             //send request
-            response = doExecute(httpclient, url, paramMap, method);
-
+            response = doPostInternal(httpclient, url, xml);
             //consume response
-            if (response == null || response.getEntity() == null) {
-                throw new HttpException(HttpError.RESPONSE_IS_EMPTY.getErrorCode(),
-                        HttpError.RESPONSE_IS_EMPTY.getErrorMessage());
-            }
-
-            HttpEntity entity = response.getEntity();
-            String result = EntityUtils.toString(entity, charset);
-
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("ErrorMessage:" + response.toString());
-                }
-                throw new HttpException(HttpError.RESPONSE_FAILURE.getErrorCode(),
-                        HttpError.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode() + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
-            }
-
+            String result = doConsume(response);
             //invoke callback
             return action.doParseResult(result);
-
         } catch (Exception e) {
-            logger.debug("http invoke has some problem.", e);
-
-            if (ConnectException.class.isAssignableFrom(e.getClass())) {
-                // need retry
-                if (this.retryStaffIsOn && HttpConnectionHolder.getRetryCnt() < this.retryCnt) {
-
-                    int retryCnt = HttpConnectionHolder.getAndIncrementRetryCnt();
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("reconnect to server and retryCnt is {}", retryCnt);
-                    }
-                    try {
-                        TimeUnit.MILLISECONDS.sleep(this.retryInterval);
-                    } catch (InterruptedException e1) {
-                        //do nothing
-                    }
-
-                    return execute(url, params, method, action);
-
-                } else {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("retry staff is not open or arrive limit retry cnt.");
-                    }
-
-                    throw new HttpException(HttpError.CONNECTION_REFUSED.getErrorCode(),
-                            HttpError.CONNECTION_REFUSED.getErrorMessage());
-                }
+            if (logger.isDebugEnabled()) {
+                logger.debug("http invoke has some problem.", e);
             }
-
             if (e instanceof HttpException) {
                 throw (HttpException) e;
             }
@@ -146,23 +97,113 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
             throw new HttpException(HttpError.SYSTEM_INTERNAL_ERROR.getErrorCode(),
                     HttpError.SYSTEM_INTERNAL_ERROR.getErrorMessage());
         } finally {
-            HttpConnectionHolder.released();
-            if (HttpConnectionHolder.getReferenceCount() == 0) {
-                HttpConnectionHolder.reset();
-            }
-
-            try {
-                if (response != null) response.close();
-                if (httpclient != null) httpclient.close();
-            } catch (IOException e) {
-                logger.debug("release http connection has some problem.");
-            }
+            close(httpclient, response);
         }
     }
 
-    private void doSign(Map<String, String> params, String charset) {
-        if (this.signProvider != null) {
-            this.signProvider.doSign(params, charset);
+    public <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action)
+            throws HttpException {
+        return execute(url, params != null ? ReflectUtil.convertJavaBean2Map(params) : new HashMap<>(), method, action);
+    }
+
+    public <T> T execute(String url, Map<String, String> params, RequestMethod method, HttpCallback<T> action)
+            throws HttpException {
+        CloseableHttpClient httpclient = null;
+        CloseableHttpResponse response = null;
+
+        requested();
+        try {
+            //resolve immutable map problem and retry problem
+            Map<String, String> paramMap = params != null ? new HashMap<>(params) : new HashMap<String, String>();
+            //create http or https client
+            httpclient = newHttpClient(this.protocol);
+            //send request
+            response = doExecute(httpclient, url, paramMap, method);
+            //consume response
+            String result = doConsume(response);
+            //invoke callback
+            return action.doParseResult(result);
+        } catch (Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("http invoke has some problem.", e);
+            }
+            if (ConnectException.class.isAssignableFrom(e.getClass())) {
+                // need retry
+                if (this.retryStaffIsOn && HttpConnectionHolder.getRetryCnt() < this.retryCnt) {
+                    int retryCnt = HttpConnectionHolder.getAndIncrementRetryCnt();
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("reconnect to server and retryCnt is {}", retryCnt);
+                    }
+                    try {
+                        TimeUnit.MILLISECONDS.sleep(this.retryInterval);
+                    } catch (InterruptedException e1) {
+                        //do nothing
+                    }
+                    return execute(url, params, method, action);
+                } else {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("retry staff is not open or arrive limit retry cnt.");
+                    }
+                    throw new HttpException(HttpError.CONNECTION_REFUSED.getErrorCode(),
+                            HttpError.CONNECTION_REFUSED.getErrorMessage());
+                }
+            }
+            if (e instanceof HttpException) {
+                throw (HttpException) e;
+            }
+            if (e instanceof UnknownHostException) {
+                throw new HttpException(HttpError.UNKNOWN_HOST.getErrorCode(),
+                        HttpError.UNKNOWN_HOST.getErrorMessage());
+            }
+            throw new HttpException(HttpError.SYSTEM_INTERNAL_ERROR.getErrorCode(),
+                    HttpError.SYSTEM_INTERNAL_ERROR.getErrorMessage());
+        } finally {
+            doRelease();
+            close(httpclient, response);
+        }
+    }
+
+    private void requested() {
+        HttpConnectionHolder.requested();
+    }
+
+    private String doConsume(CloseableHttpResponse response) throws HttpException, IOException {
+        if (response == null || response.getEntity() == null) {
+            throw new HttpException(HttpError.RESPONSE_IS_EMPTY.getErrorCode(),
+                    HttpError.RESPONSE_IS_EMPTY.getErrorMessage());
+        }
+        HttpEntity entity = response.getEntity();
+        String result = EntityUtils.toString(entity, charset);
+        if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("ErrorMessage:" + response.toString());
+            }
+            throw new HttpException(HttpError.RESPONSE_FAILURE.getErrorCode(),
+                    HttpError.RESPONSE_FAILURE.getErrorMessage() + "【StatusCode=" + response.getStatusLine().getStatusCode()
+                            + ",\tReasonPhrase:" + response.getStatusLine().getReasonPhrase() + "】");
+        }
+        return result;
+    }
+
+    private void doRelease() {
+        HttpConnectionHolder.released();
+        if (HttpConnectionHolder.getReferenceCount() == 0) {
+            HttpConnectionHolder.reset();
+        }
+    }
+
+    private void close(CloseableHttpClient httpclient, CloseableHttpResponse response) {
+        try {
+            if (response != null) {
+                response.close();
+            }
+            if (httpclient != null) {
+                httpclient.close();
+            }
+        } catch (IOException e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("release http connection has some problem.");
+            }
         }
     }
 
@@ -173,7 +214,6 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         } else if (method == RequestMethod.GET) {
             return doGetInternal(httpclient, url);
         }
-
         throw new HttpException(HttpError.UNSUPPORTED_REQUEST_METHOD.getErrorCode(),
                 HttpError.UNSUPPORTED_REQUEST_METHOD.getErrorMessage());
     }
@@ -181,49 +221,51 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
     private CloseableHttpResponse doGetInternal(CloseableHttpClient httpclient, String url)
             throws Exception {
         HttpGet httpGet = new HttpGet(url);
-
         return httpclient.execute(httpGet);
     }
 
     private CloseableHttpResponse doPostInternal(CloseableHttpClient httpclient, String url, Map<String, String> params)
             throws Exception {
         HttpPost httpPost = new HttpPost(url);
-
         List<NameValuePair> requestParams = new ArrayList<>();
         for (Entry<String, String> entry : params.entrySet()) {
             requestParams.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
         }
-
         if (requestParams.size() > 0) {
             UrlEncodedFormEntity uefEntity = new UrlEncodedFormEntity(requestParams, this.charset);
             httpPost.setEntity(uefEntity);
         }
+        return httpclient.execute(httpPost);
+    }
 
+    private CloseableHttpResponse doPostInternal(CloseableHttpClient httpclient, String url, String xml)
+            throws Exception {
+        HttpPost httpPost = new HttpPost(url);
+        httpPost.setEntity(EntityBuilder.create().setContentType(ContentType.create(MIME_TYPE_XML, Consts.UTF_8)).setText(xml).build());
         return httpclient.execute(httpPost);
     }
 
     private CloseableHttpClient newHttpClient(Protocol protocol) throws Exception {
-        if (protocol == Protocol.HTTP) {
-            return HttpClients.createDefault();
-        } else {
-            return newHttpsClient();
-        }
-    }
-
-    private CloseableHttpClient newHttpsClient() throws Exception {
-        X509TrustManager x509mgr = HttpsSupport.newX509TrustManager();
         RequestConfig requestConfig = RequestConfig.custom()
-                .setSocketTimeout(DEFAULT_CONNECT_TIME)
-                .setConnectTimeout(DEFAULT_CONNECT_TIME)
+                .setConnectionRequestTimeout(this.connectionRequestTimeout)
+                .setSocketTimeout(this.socketTimeout)
+                .setConnectTimeout(this.connectTimeout)
                 .build();
 
-        SSLContext sslContext = HttpsSupport.newSSLContext(x509mgr);
-        SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+        if (protocol == Protocol.HTTP) {
+            return HttpClientBuilder.create().setDefaultRequestConfig(requestConfig).build();
+        } else {
+            X509TrustManager x509mgr = HttpsSupport.newX509TrustManager();
 
-        return HttpClients.custom()
-                .setSSLSocketFactory(sslsf)
-                .setDefaultRequestConfig(requestConfig)
-                .build();
+            SSLContext sslContext = HttpsSupport.newSSLContext(x509mgr);
+            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext,
+                    SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+            return HttpClients.custom()
+                    .setSSLSocketFactory(sslConnectionSocketFactory)
+                    .setDefaultRequestConfig(requestConfig)
+                    .build();
+        }
     }
 
     public static final class Builder {
@@ -232,6 +274,9 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         String contentType = DEFAULT_CONTENT_TYPE;
         String charset = DEFAULT_CHARSET;
         RequestMethod requestMethod = RequestMethod.POST;
+        int connectionRequestTimeout = DEFAULT_CONNECTION_REQUEST_TIMEOUT;
+        int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+        int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
         public Builder protocol(Protocol protocol) {
             this.protocol = protocol;
@@ -250,6 +295,21 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
 
         public Builder requestMethod(RequestMethod requestMethod) {
             this.requestMethod = requestMethod;
+            return this;
+        }
+
+        public Builder connectionRequestTimeout(int connectionRequestTimeout) {
+            this.connectionRequestTimeout = connectionRequestTimeout;
+            return this;
+        }
+
+        public Builder socketTimeout(int socketTimeout) {
+            this.socketTimeout = socketTimeout;
+            return this;
+        }
+
+        public Builder connectTimeout(int connectTimeout) {
+            this.connectTimeout = connectTimeout;
             return this;
         }
 

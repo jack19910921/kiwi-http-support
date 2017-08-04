@@ -14,6 +14,8 @@ public interface HttpOperations {
 
     <T> T execute(String url, Object params, RequestMethod method, HttpCallback<T> action) throws HttpException;
 
+    <T> T executeXml(String url, String xml, HttpCallback<T> action) throws HttpException;
+
     <T> T doPost(String url, Map<String, String> params, HttpCallback<T> action) throws HttpException;
 
     <T> T doPost(String url, Object params, HttpCallback<T> action) throws HttpException;

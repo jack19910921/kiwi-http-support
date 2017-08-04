@@ -3,7 +3,6 @@ package org.kiwi.http.support;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
 import org.kiwi.http.support.spi.ConfigProvider;
-import org.kiwi.http.support.spi.SignProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -34,10 +33,12 @@ public abstract class HttpConfigurer implements InitializingBean, ApplicationCon
     protected String contentType;
     protected String charset;
     protected RequestMethod requestMethod;
+    protected int connectionRequestTimeout = DEFAULT_CONNECTION_REQUEST_TIMEOUT;
+    protected int socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+    protected int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
-    protected String configClass = DEFAULT_CONFIG_CLASS;
-    protected String configMethodName = DEFAULT_CONFIG_METHOD_NAME;
-    protected SignProvider signProvider;
+    protected String configClass;
+    protected String configMethodName;
 
     protected volatile int retryCnt = DEFAULT_RETRY_CNT;
     protected volatile int retryInterval = DEFAULT_RETRY_INTERVAL;
@@ -153,71 +154,53 @@ public abstract class HttpConfigurer implements InitializingBean, ApplicationCon
             if (configProvider != null) {
                 initConfigBySpiImpl(configProvider);
             } else {
-                try {
-                    /**
-                     * using specified class with method in order to init config.
-                     * (need setter injection,if not config,using "com.vip.xfd.account.components.ConfigManager#getString(String,String)")
-                     */
-                    clazz = loader.loadClass(this.configClass);
-                    Object configManager = applicationContext.getBean(clazz);
-
-                    Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
-                    method.setAccessible(true);
-
-                    String protocolStr = (String) method.invoke(configManager, CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL);
-                    this.protocol = Protocol.determineProtocolByText(protocolStr);
-
-                    String requestMethodStr = (String) method.invoke(configManager, CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD);
-                    this.requestMethod = RequestMethod.determineRequestMethodByText(requestMethodStr);
-
-                    String contentType = (String) method.invoke(configManager, CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
-                    this.contentType = contentType;
-
-                    String charset = (String) method.invoke(configManager, CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
-                    this.charset = charset;
-                } catch (ClassNotFoundException e) {
-                    logger.debug("load config has some problem,using default config.[{}]", e.getMessage());
-                    initDefaultConfig();
-                }
-            }
-
-            /**
-             * look up SignProvider spi implementation from classpath.
-             */
-            ServiceLoader<SignProvider> serviceLoader1 = ServiceLoader.load(SignProvider.class);
-            Iterator<SignProvider> iterator1 = serviceLoader1.iterator();
-            while (iterator1.hasNext()) {
-                this.signProvider = iterator1.next();
-                break;
-            }
-
-            if (this.signProvider == null) {
                 /**
-                 * look up SignProvider spi implementation from ioc container.
+                 * using specified class with method in order to init config.
+                 * need setter injection.
                  */
-                Class<?> signClazz = loader.loadClass(SignProvider.class.getName());
+                clazz = loader.loadClass(this.configClass);
+                Object configManager = applicationContext.getBean(clazz);
 
-                Map<String, ?> signProviderBeanMap = applicationContext.getBeansOfType(signClazz);
-                if (!CollectionUtils.isEmpty(signProviderBeanMap)) {
-                    for (Object signProviderBean : signProviderBeanMap.values()) {
-                        this.signProvider = (SignProvider) signProviderBean;
-                        break;
-                    }
-                }
+                Method method = clazz.getDeclaredMethod(this.configMethodName, String.class, String.class);
+                method.setAccessible(true);
+
+                String protocolStr = (String) method.invoke(configManager, CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL);
+                this.protocol = Protocol.determineProtocolByText(protocolStr);
+
+                String requestMethodStr = (String) method.invoke(configManager, CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD);
+                this.requestMethod = RequestMethod.determineRequestMethodByText(requestMethodStr);
+
+                String contentType = (String) method.invoke(configManager, CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
+                this.contentType = contentType;
+
+                String charset = (String) method.invoke(configManager, CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
+                this.charset = charset;
+
+                int connectionRequestTimeout = Integer.parseInt(method.invoke(configManager, CONFIG_KEY_CONNECTION_REQUEST_TIMEOUT, DEFAULT_TIMEOUT_STR).toString());
+                this.connectionRequestTimeout = connectionRequestTimeout;
+
+                int socketTimeout = Integer.parseInt(method.invoke(configManager, CONFIG_KEY_SOCKET_TIMEOUT, DEFAULT_TIMEOUT_STR).toString());
+                this.socketTimeout = socketTimeout;
+
+                int connectTimeout = Integer.parseInt(method.invoke(configManager, CONFIG_KEY_CONNECT_TIMEOUT, DEFAULT_TIMEOUT_STR).toString());
+                this.connectTimeout = connectTimeout;
             }
-
         } catch (Exception e) {
-            logger.debug("load config has some problem,using default config.", e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("load config has some problem,using default config.", e);
+            }
             initDefaultConfig();
         }
-
     }
 
     private void initConfigBySpiImpl(ConfigProvider configProvider) {
-        this.protocol = Protocol.determineProtocolByText(configProvider.getString(CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL));
-        this.requestMethod = RequestMethod.determineRequestMethodByText(configProvider.getString(CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD));
-        this.contentType = configProvider.getString(CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
-        this.charset = configProvider.getString(CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
+        this.protocol = Protocol.determineProtocolByText(configProvider.get(CONFIG_KEY_PROTOCOL, DEFAULT_PROTOCOL));
+        this.requestMethod = RequestMethod.determineRequestMethodByText(configProvider.get(CONFIG_KEY_REQUEST_METHOD, DEFAULT_REQUEST_METHOD));
+        this.contentType = configProvider.get(CONFIG_KEY_CONTENT_TYPE, DEFAULT_CONTENT_TYPE);
+        this.charset = configProvider.get(CONFIG_KEY_CHARSET, DEFAULT_CHARSET);
+        this.connectionRequestTimeout = Integer.parseInt(configProvider.get(CONFIG_KEY_CONNECTION_REQUEST_TIMEOUT, DEFAULT_TIMEOUT_STR));
+        this.socketTimeout = Integer.parseInt(configProvider.get(CONFIG_KEY_SOCKET_TIMEOUT, DEFAULT_TIMEOUT_STR));
+        this.connectTimeout = Integer.parseInt(configProvider.get(CONFIG_KEY_CONNECT_TIMEOUT, DEFAULT_TIMEOUT_STR));
     }
 
     private void initDefaultConfig() {
@@ -225,6 +208,9 @@ public abstract class HttpConfigurer implements InitializingBean, ApplicationCon
         this.contentType = DEFAULT_CONTENT_TYPE;
         this.charset = DEFAULT_CHARSET;
         this.requestMethod = RequestMethod.POST;
+        this.connectionRequestTimeout = DEFAULT_CONNECTION_REQUEST_TIMEOUT;
+        this.socketTimeout = DEFAULT_SOCKET_TIMEOUT;
+        this.connectTimeout = DEFAULT_CONNECT_TIMEOUT;
     }
 
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
