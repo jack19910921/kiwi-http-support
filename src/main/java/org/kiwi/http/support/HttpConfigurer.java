@@ -116,9 +116,6 @@ public abstract class HttpConfigurer implements InitializingBean, ApplicationCon
     }
 
     private void initConfig() {
-        Assert.hasText(this.configClass, "configClass is required");
-        Assert.hasText(this.configMethodName, "configMethodName is required");
-
         try {
             ConfigProvider configProvider = null;
 
