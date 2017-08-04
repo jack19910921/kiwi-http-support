@@ -158,7 +158,7 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
             throw new HttpException(HttpError.SYSTEM_INTERNAL_ERROR.getErrorCode(),
                     HttpError.SYSTEM_INTERNAL_ERROR.getErrorMessage());
         } finally {
-            doRelease();
+            released();
             close(httpclient, response);
         }
     }
@@ -185,7 +185,7 @@ public class HttpTemplate extends HttpConfigurer implements HttpOperations {
         return result;
     }
 
-    private void doRelease() {
+    private void released() {
         HttpConnectionHolder.released();
         if (HttpConnectionHolder.getReferenceCount() == 0) {
             HttpConnectionHolder.reset();

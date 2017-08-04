@@ -25,11 +25,11 @@ public class HttpConstant {
     public static final String DEFAULT_CONTENT_TYPE = "application/json";
     public static final String DEFAULT_CHARSET = "UTF-8";
 
-    public static final String DEFAULT_TIMEOUT_STR = "-1";
+    public static final String DEFAULT_TIMEOUT_STR = "60000";
 
-    public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = -1;
-    public static final int DEFAULT_SOCKET_TIMEOUT = -1;
-    public static final int DEFAULT_CONNECT_TIMEOUT = -1;
+    public static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT = 60000;
+    public static final int DEFAULT_SOCKET_TIMEOUT = 60000;
+    public static final int DEFAULT_CONNECT_TIMEOUT = 60000;
 
     public static final String MIME_TYPE_XML = "text/xml";
 

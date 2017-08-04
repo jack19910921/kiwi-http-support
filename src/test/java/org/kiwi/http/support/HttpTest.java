@@ -1,7 +1,6 @@
 package org.kiwi.http.support;
 
 import com.alibaba.fastjson.JSON;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.kiwi.http.support.enums.Protocol;
 import org.kiwi.http.support.enums.RequestMethod;
@@ -13,8 +12,9 @@ import java.util.Map;
 /**
  * Created by jack on 16/8/9.
  */
-@Slf4j
 public class HttpTest {
+
+    public static final String URL = "http://localhost/";
 
     @Test
     public void testDoGet() {
@@ -23,21 +23,15 @@ public class HttpTest {
                     .charset("UTF-8")
                     .protocol(Protocol.HTTP)
                     .build();
-
-            String url = "http://127.0.0.1:8080/job/list";
-
-            Map<String, String> response = httpTemplate.doGet(url, new HttpCallback<Map<String, String>>() {
-
+            Map<String, String> response = httpTemplate.doGet(URL, new HttpCallback<Map<String, String>>() {
                 @Override
                 public Map<String, String> doParseResult(String result) {
                     return (Map<String, String>) JSON.parse(result);
                 }
             });
-
-            log.info("--------->>>Response:{}", response);
-
+            System.out.println("--------->>>Response:" + response);
         } catch (HttpException e) {
-            log.error(e.getErrorCode() + ":" + e.getErrorMessage());
+            e.printStackTrace();
         }
     }
 
@@ -48,22 +42,16 @@ public class HttpTest {
                     .charset("UTF-8")
                     .protocol(Protocol.HTTP)
                     .build();
-            String url = "http://127.0.0.1:8080/job/list";
-
-            Map<String, String> response = httpTemplate.execute(url, new HashMap<String, String>(), RequestMethod.POST,
-
+            Map<String, String> response = httpTemplate.execute(URL, new HashMap<String, String>(), RequestMethod.POST,
                     new HttpCallback<Map<String, String>>() {
-
                         @Override
                         public Map<String, String> doParseResult(String result) {
                             return (Map<String, String>) JSON.parse(result);
                         }
                     });
-
-            log.info("POST:--------->>>Response:{}", response);
-
+            System.out.println("--------->>>Response:" + response);
         } catch (HttpException e) {
-            log.error(e.getErrorCode() + ":" + e.getErrorMessage());
+            e.printStackTrace();
         }
     }
 }
