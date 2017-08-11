@@ -43,6 +43,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    
+    <distributionManagement>
+        <snapshotRepository>
+            <id>froad-snapshot</id>
+            <name>snapshots</name>
+            <url>http://10.43.1.23:8081/content/repositories/froad-snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
         <plugins>
             <plugin>
